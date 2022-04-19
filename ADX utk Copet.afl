@@ -1,0 +1,24 @@
+//=======================================================================================
+//=======================================================================================
+
+_SECTION_BEGIN( "ADX" );
+rangeADX = Param( "Periods ADX", 10, 2, 200, 1 );
+rangeDI  = Param( "Periods DI" , 10, 2, 200, 1 );
+Plot( ADX( rangeADX ), "ADX", ParamColor( "ADX color", colorBlue ), ParamStyle( "ADX style", styleThick ) );
+Plot( PDI( rangeDI ), "+DI", ParamColor( "+DI color", colorGreen ), ParamStyle( "+DI style" ) );
+Plot( MDI( rangeDI ), "-DI", ParamColor( "-DI color", colorRed ), ParamStyle( "-DI style" ) );
+Plot( Param( "Level A", 20, 0, 100, 1, 1 ), "Level A", ParamColor( "Level A Color", colorViolet ), ParamStyle( "Level A Style", styleDashed | styleNoLabel | stylenotitle ) );
+Plot( Param( "Level B", 25, 0, 100, 1, 1 ), "Level B", ParamColor( "Level B Color", colorViolet ), ParamStyle( "Level B Style", styleDashed | styleNoLabel | stylenotitle ) );
+Plot( Param( "Level C", 50, 0, 100, 1, 1 ), "Level C", ParamColor( "Level C Color", colorViolet ), ParamStyle( "Level C Style", styleDashed | styleNoLabel | stylenotitle ) );
+_SECTION_END();
+
+//=======================================================================================
+//=======================================================================================
+
+_SECTION_BEGIN( "Filter" );
+Avg_Price = ( O + H + L + C ) / 4;
+Value_Trx = Avg_Price * Volume;
+Filter_Buy = Ref( Close, -1 ) > Ref( EMA( Close, 20 ), -1 ) AND ADX( rangeADX ) > 30 AND PDI( rangeDI ) > MDI( rangeDI ) AND Open < Ref( Low, -1 ) AND( Close > Open OR( Close > Open AND High > Ref( Low, -1 ) ) ) AND MA( Value_Trx, 20 ) > 3000000000;
+PlotShapes( Filter_Buy*shapeHollowSmallUpTriangle, colorGreen, 0, ADX( rangeADX ), -12 );
+Filter = Filter_Buy;
+_SECTION_END();

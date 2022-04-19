@@ -1,0 +1,195 @@
+//Target Achiever // 
+// Best use 15Min Time Interval for NSE & BSE Stock//
+// Not Created By Me, I just modified credit goes to original creator//
+//Scan Analysis Support-Yes//
+//Explorer Support- Yes//
+//Back test Support- Yes//
+
+
+Odd=13;
+CoefOdd=round(Odd/2);
+
+Even=12;
+Coefeven=Even/2;
+Coefeven2=Coefeven+1;
+
+CongestionPercent=2.8;
+
+TriangularOdd=MA(MA(C,CoefOdd),CoefOdd);
+TriangularEven=MA(MA(C,Coefeven),Coefeven2);
+
+finalMov_avg=IIf(Odd > even,triangularOdd,TriangularEven);
+
+Color=colorBrightGreen;
+tickercolor=colorLime;
+
+Plot(finalMov_avg,"",IIf(C < finalmov_avg,colorRed,Color),styleLine|styleThick);
+Plot(C,"",tickercolor,styleCandle);
+
+
+Title=Name()+"..."+"( "+WriteIf(Odd > even,WriteVal(Odd,1),WriteVal(even,1))+" ) Period "+EncodeColor(Color)+"Triangular"+WriteIf(Odd > even,"ODD","EVEN")+" Moving Average"+"..."+EncodeColor(colorBlack)+ WriteIf(C < finalMov_avg,"Close is "+EncodeColor(colorRed)+"Below"+EncodeColor(colorBlack)+" Moving Average by ","Close is"+EncodeColor(colorBrightGreen)+" Above"+EncodeColor(colorBlack)+" Moving Average by ")+"("+WriteVal(((C/finalMov_avg)-1)*100,1.1)+"% )"+"\n"+WriteIf(finalmov_avg-Ref(finalmov_avg,-1)>0," Slope Of Average is UP : ","Slope Of Average is DOWN :")+WriteIf((((C/finalMov_avg)-1)*100 <= CongestionPercent AND ((C/finalMov_avg)-1)*100 >= -CongestionPercent),EncodeColor(colorYellow)+" with Price Congestion / Divergence to Average ","")+"\n"+WriteIf(Ref(C,-1) < Ref(finalmov_avg,-1) AND C > finalmov_avg,EncodeColor(colorGreen)+"Possible Change in Trend From Down to Up"+"\n"+" OR Short Term Correction of Previous Trend",WriteIf(Ref(C,-1) > Ref(finalmov_avg,-1) AND C < finalmov_avg,EncodeColor(colorRed)+"Possible Change in Trend From Up to Down "+"\n"+" OR Short Term Correction to Previous Trend",""))+"\n"+WriteIf(C > finalmov_avg,EncodeColor(colorGreen)+"Close has been above Moving Average ( "+WriteVal(BarsSince(C < finalmov_avg),1)+" ) Bars",EncodeColor(colorRed)+"Close has been Below Moving Average ( "+WriteVal(BarsSince(C > finalmov_avg),1)+" ) Bars")+"\n"+EncodeColor(colorBlack)+"The average # of Bars Above ( "+WriteVal(round(Cum(BarsSince(C < finalmov_avg)/Cum(1))),1)+" )"+"\n"+"The average # of Bars Below ( "+WriteVal(round(Cum(BarsSince(C > finalmov_avg)/Cum(1))),1)+" )";
+_SECTION_BEGIN("AFL Target Mama Muda Jaman Now");
+_N(Title = StrFormat("{{NAME}} - {{INTERVAL}} {{DATE}} Open %g, Hi %g, Lo %g, Close %g (%.1f%%) {{VALUES}}", O, H, L, C, SelectedValue( ROC( C, 1 ) ) ));
+SetBarFillColor( IIf( C>O, colorGreen, colorRed ) ); 
+Plot( C, "Close", colorBlack, styleNoTitle | ParamStyle("Style") | GetPriceStyle() ); 
+
+
+SetBarsRequired(10000,10000); /* this ensures that the charts include all bars AND NOT just those on screen */
+SetFormulaName("Sample System"); /*name it for backtest report identification */
+SetTradeDelays( 1, 1, 1, 1 ); /* delay entry/exit by one bar */
+SetOption( "initialequity", 100000 ); /* starting capital */
+PositionSize = -10; /* trade size will be 10% of available equty */
+SetOption( "MaxOpenPositions", 6 ); /* I don't want to comit more than 60% of Equity at any one time */
+SetOption( "PriceBoundChecking", 1 ); /* trade only within the chart bar's price range */
+SetOption( "CommissionMode", 2 ); /* set commissions AND costs as $ per trade */
+SetOption( "CommissionAmount", 32.95 ); /* commissions AND cost */
+SetOption( "UsePrevBarEquityForPosSizing", 1 ); /*set the use of last bars equity for trade size*/
+PositionScore = 100/C; /*Set the order for which stock trades when get mulitple signals in one bar in backtesting */
+
+
+
+LongPer = Param("Long Period", 50, 30, 100, 5 ); /* select periods with parameter window */
+ShortPer = Param("Short Period", 5, 3, 10, 1 );
+
+LongMA = EMA( C, LongPer );
+ShortMA = EMA( C, ShortPer );
+LastHigh = HHV( H, LongPer );
+
+Buy1 = Cross( ShortMA, LongMA ) AND H > Ref( LastHigh, -1 );
+
+Sell1 = Cross( LongMA, ShortMA );
+
+Buy = ExRem(Buy1,Sell1);
+Sell = ExRem(Sell1,Buy1);
+
+
+GraphXSpace = 10;
+
+//Plot( C, " Close Price", colorGrey50, styleBar );
+Plot( LongMA, " EMA(C,"+WriteVal(LongPer,1)+")", colorBrown, styleLine|styleNoRescale );
+Plot( ShortMA, " EMA(C,"+WriteVal(ShortPer,1)+")", colorBlue, styleLine|styleNoRescale );
+Plot( Ref(Lasthigh,-1), " HHV(H,"+WriteVal(LongPer,1)+")", colorRed, styleNoLine|styleDots|styleNoRescale );
+
+//PlotShapes( shapeUpArrow*Buy, colorGreen, 0, L, -10 );
+//PlotShapes( shapeDownArrow*Sell, colorRed, 0, H, -10 );
+
+Title = " {{NAME}} {{DATE}} {{INTERVAL}} "+_DEFAULT_NAME()+" Chart values : {{VALUES}} ";
+
+
+_SECTION_END();  
+
+
+
+no=Param( "Swing", 5, 1, 55 );
+res=HHV(H,no);
+sup=LLV(L,no);
+tsl=IIf(ValueWhen(IIf(C>Ref(res,-1),1,IIf(C<Ref(sup,-1),-1,0))!=0,IIf(C>Ref(res,-1),1,IIf(C<Ref(sup,-1),-1,0)),1)==1,sup,res);
+
+Buy = Cross(C,res);
+Sell = Cross(sup,C)  ;
+_SECTION_END();
+
+a=C;
+g=(EMA(Close,3) * (2 / 4 - 1)-EMA(Close,5) * (2 / 6 - 1)) / (2 /4- 2 /6);
+e=Ref(tsl,-1);
+Buy = Cross(C,tsl);
+Sell = Cross(tsl,C)  ;
+SellPrice=ValueWhen(Sell,e,1);
+BuyPrice=ValueWhen(Buy,e,1);
+Long=Flip(Buy,Sell);
+Shrt=Flip(Sell,Buy );
+
+// MENGHITUNG RATA VOLUME LIMA HARI KEBELAKANG
+//////////// ///////// ///////// ///////// ///////// ///////// ////////
+Vol1 = Ref(Volume,- 1);
+Vol2 = Ref(Volume,- 2);
+Vol3 = Ref(Volume,- 3);
+Vol4 = Ref(Volume,-4);
+Vol5 = Ref(Volume,-5);
+VolRata=(Vol1+ Vol2+Vol3+Vol4+Vol5)/5;
+
+Cuan = ((Close-Open)/Open)*100;
+
+//////////// ///////// ///////// ///////// ///////// ///////// ////////
+
+
+// MENCARI CANDLE YANG CLOSING NYA DIBAWAH HARGA HIGH ///
+
+Filter1 = Cuan > 2;
+
+ 
+ 
+// MENCARI VOLUME YANG LEBIH BESAR DARI RATA2 VOLUME LIMA HARI SEBELUMNYA
+//////////// ///////// ///////// ////////
+Filter2 = Volume > VolRata;
+//////////// ///////// ///////// ////////
+ 
+ 
+ 
+// MENCARI CANDLESTICK YANG BERWARNA HIJAU, OPEN > CLOSE
+//////////// ///////// ///////// ////
+Filter3 = Close > Open;
+//////////// ///////// ///////// ////
+ 
+ 
+ 
+// MENCARI VOLUME TERAKHIR LEBIH BESAR DARI VOLUME SEHARI SEBELUMNYA
+//////////// ///////// ///////// /////////
+Filter4 = Volume > Vol1;
+//////////// ///////// ///////// ///////// //////
+
+
+// Menentukan Value = Volume * AveragePrice
+// Definisi Value
+AvgPrice=(O+H+L+C)/4;
+DV=AvgPrice*Volume*100;
+
+// Pilih saham yg likuid ,yaitu Value > Rp. 3M, 
+Likuid = DV > 3000000000;
+
+
+Filter=Buy;
+Buy = Cross(C,tsl)AND Filter2 AND Likuid;
+Sell = Cross(tsl,C)  ;
+shape = Buy * shapeUpArrow + Sell * shapeDownArrow;
+PlotShapes( shape, IIf( Buy, colorGreen, colorRed ),0, IIf( Buy, Low, High ) );
+a1=Ref(tsl,-1);
+
+dist = 0.8*ATR(1); //0.8
+dist1 = 1.8*ATR(1); //1.2
+for( i = 0; i < BarCount; i++ ) 
+{ 
+ if( Buy[i] ) 
+ {
+  PlotText( "Buy:" + C[ i ] + "\nTgt: " + ((C[i]-tsl[i])+C[i]) + "\nSL: " +  tsl[i], i, C[ i ]-dist[i], colorLime);
+ }
+ if( Sell[i] )
+ {
+  PlotText( "Sell:" + C[ i ] + "\nT: " + (C[i]-(tsl[i]-C[i])) + "\nSL: " + tsl[i], i, C[ i ]+dist1[i], colorRed); 
+ }
+}
+
+_SECTION_BEGIN("SAR1");
+acc = Param("Acceleration", 0.02, 0, 1, 0.001 );
+accm = Param("Max. acceleration", 0.2, 0, 1, 0.001 );
+Plot( SAR( acc, accm ), _DEFAULT_NAME(), ParamColor( "Color", colorCycle ), ParamStyle("Style", styleDots | styleNoLine, maskDefault | styleDots | styleNoLine ) );
+_SECTION_END();
+
+//////////// ///////// ///////// ///////// ///////// ///////// //
+
+
+
+Filter = Buy AND Likuid AND Filter2;
+AddColumn( C, "Close", 1.0);
+AddColumn( H, "High", 1.0 );
+AddColumn( LastHigh, "HHV", 1.0 );
+AddColumn( LongMA, "Long MA", 1,0 );
+AddColumn( ShortMA, "Short MA", 1,0 );
+AddColumn(Volume/VolRata,"Rasio");
+AddColumn(Volume,"Volume hari ini");
+AddColumn (Volrata, "Avg Vol 5D");
+AddColumn (Vol1,"Vol H-1");
+AddColumn (Close*3/100+Close, "Target TP");
+AddColumn (Ref(High,1),"High 1+", 1.0);
+AddColumn (Ref(Close,5), "Close 5+",1.0);
+SetSortColumns (-8,1);
